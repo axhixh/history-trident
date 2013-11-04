@@ -26,7 +26,7 @@ public class TestDataLoader {
     public static Map<String, Integer> loadFiltered() throws IOException {
         final Map<String, String> placeMap = new HashMap<>();
         try (CSVReader reader = new CSVReader(new InputStreamReader(
-                VerifyFilterData.class.getResourceAsStream("/data/moz_places_filtered.csv")),
+                TestDataLoader.class.getResourceAsStream("/data/moz_places_filtered.csv")),
                 ',', '"', 1)) {
             for (String[] line : reader.readAll()) {
                 if (isInterestingURL(line[1])) {
@@ -51,7 +51,7 @@ public class TestDataLoader {
 
     private static Map<String, Integer> load(Filter filter) throws IOException {
         try (CSVReader reader = new CSVReader(new InputStreamReader(
-                VerifyData.class.getResourceAsStream("/data/moz_historyvisits.csv")),
+                TestDataLoader.class.getResourceAsStream("/data/moz_historyvisits.csv")),
                 ',', '"', 1)) {
             Map<String, Integer> counter = new HashMap<>();
             for (String[] line : reader.readAll()) {
