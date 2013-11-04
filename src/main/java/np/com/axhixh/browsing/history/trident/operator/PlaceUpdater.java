@@ -1,27 +1,25 @@
 package np.com.axhixh.browsing.history.trident.operator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import np.com.axhixh.browsing.history.trident.persistence.PlaceDB;
 import storm.trident.operation.TridentCollector;
 import storm.trident.state.BaseStateUpdater;
-import storm.trident.testing.MemoryMapState;
 import storm.trident.tuple.TridentTuple;
 
 /**
  *
  * @author ashish
  */
-public class PlaceUpdater extends BaseStateUpdater<MemoryMapState> {
+public class PlaceUpdater extends BaseStateUpdater<PlaceDB> {
 
     @Override
-    public void updateState(MemoryMapState s, List<TridentTuple> list, TridentCollector tc) {
-        List<List<String>> keys = new ArrayList<>(list.size());
-        List<String> values = new ArrayList<>(list.size());
+    public void updateState(PlaceDB db, List<TridentTuple> list, TridentCollector tc) {
+        Map<String, String> entries = new HashMap<>();
         for (TridentTuple tt : list) {
-            keys.add(Arrays.asList(tt.getString(0)));
-            values.add(tt.getString(1));
+            entries.put(tt.getString(0), tt.getString(1));
         }
-        s.multiPut(keys, values);
+        db.putAll(entries);
     }
 }

@@ -20,11 +20,13 @@ import np.com.axhixh.browsing.history.trident.operator.PlaceQuery;
 import np.com.axhixh.browsing.history.trident.operator.PlaceUpdater;
 import np.com.axhixh.browsing.history.trident.operator.URLFilter;
 import np.com.axhixh.browsing.history.trident.operator.VisitAggregator;
+import np.com.axhixh.browsing.history.trident.persistence.PlaceDBFactory;
 import np.com.axhixh.browsing.history.trident.source.HistorySpout;
 import np.com.axhixh.browsing.history.trident.source.PlacesSpout;
 import storm.trident.TridentState;
 import storm.trident.TridentTopology;
-import storm.trident.testing.MemoryMapState;
+import storm.trident.operation.BaseFilter;
+import storm.trident.tuple.TridentTuple;
 
 /**
  *
@@ -33,21 +35,34 @@ import storm.trident.testing.MemoryMapState;
 public class TridentStreamFiltered implements Closeable {
 
     private final LocalCluster cluster;
-
-    public TridentStreamFiltered() throws IOException {
+    private final TridentTopology topology;
+    private TridentState placeState;
+    
+    public TridentStreamFiltered() {
         cluster = new LocalCluster();
-        cluster.submitTopology("heatmap", new Config(), buildTopology());
+        topology = new TridentTopology();
+    }
+    
+    public void processPlaces() throws IOException {
+        cluster.submitTopology("places", new Config(), buildPlacesTopology());
+    }
+    
+    public void processHistory() throws IOException {
+        cluster.submitTopology("history", new Config(), buildHistoryTopology());
     }
 
-    private StormTopology buildTopology() throws IOException {
-        TridentTopology topology = new TridentTopology();
-
+    private StormTopology buildPlacesTopology() throws IOException {
         List<String[]> places = load("/data/moz_places_filtered.csv");
-        TridentState placeState = topology.newStream("place-source", new PlacesSpout(places))
+        placeState = topology.newStream("place-source", new PlacesSpout(places))
                 .shuffle()
                 .each(new Fields("id", "url"), new URLFilter("clojure"))
-                .partitionPersist(new MemoryMapState.Factory(), new Fields("id", "url"), new PlaceUpdater());
-
+                .each(new Fields("id", "url"), new PrintFilter()) // just for debug
+                .partitionPersist(new PlaceDBFactory(), new Fields("id", "url"), 
+                        new PlaceUpdater());
+        return topology.build();
+    }
+    
+    private StormTopology buildHistoryTopology() throws IOException {
         List<String[]> history = load("/data/moz_historyvisits.csv");
         topology.newStream("history-source", new HistorySpout(history))
                 .shuffle()
@@ -77,11 +92,24 @@ public class TridentStreamFiltered implements Closeable {
 
     public static void main(String[] args) throws IOException {
         try (TridentStreamFiltered app = new TridentStreamFiltered()) {
-            Utils.sleep(15000); // from log 5000 is what it takes on my macbook air
+            app.processPlaces();
+            Utils.sleep(5000); 
+            app.processHistory();
+            Utils.sleep(10000);
             MockDB.getInstance().dump(System.out);
             try (PrintStream out = new PrintStream(new File("stream-filtered-heatmap.txt"))) {
                 MockDB.getInstance().dumpForPlot(out);
             }
         }
+    }
+    
+    static class PrintFilter extends BaseFilter {
+
+        @Override
+        public boolean isKeep(TridentTuple tuple) {
+            System.out.println(tuple);
+            return true;
+        }
+        
     }
 }

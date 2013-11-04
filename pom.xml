@@ -33,7 +33,7 @@
     <dependency>
       <groupId>storm</groupId>
       <artifactId>storm</artifactId>
-      <version>0.8.2</version>
+      <version>0.9.0-rc2</version>
     </dependency>
     <dependency>
         <groupId>net.sf.opencsv</groupId>

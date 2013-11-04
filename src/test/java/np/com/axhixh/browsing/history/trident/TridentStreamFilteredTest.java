@@ -25,7 +25,10 @@ public class TridentStreamFilteredTest extends TridentTest {
     public void testApp() {
         try {
             try (TridentStreamFiltered app = new TridentStreamFiltered()) {
-                Utils.sleep(15000);
+                app.processPlaces();
+                Utils.sleep(5000); 
+                app.processHistory();
+                Utils.sleep(10000);
                 MockDB db = MockDB.getInstance();
                 verify(db, expected);
             }
